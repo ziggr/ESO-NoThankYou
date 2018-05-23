@@ -20,7 +20,7 @@ Under the following terms:
     No additional restrictions — You may not apply legal terms or technological measures that legally restrict others from doing anything the license permits.
 
 
-Please read full licence at : 
+Please read full licence at :
 http://creativecommons.org/licenses/by-nc-sa/4.0/legalcode
 ]]
 
@@ -113,7 +113,7 @@ end
 
 --AvA messages
 local function HookAvAMessages()
-	local handlers = ZO_CenterScreenAnnounce_GetHandlers()
+	local handlers = ZO_CenterScreenAnnounce_GetCallbackHandlers()
 	local avaEvents = {
 		EVENT_ARTIFACT_CONTROL_STATE,
 		EVENT_KEEP_GATE_STATE_CHANGED,
@@ -140,7 +140,7 @@ local function HookAvAMessages()
 			end
 		end
 	end
-	
+
 	for i = 1, #avaEvents do
 		HookAvAEventHandler(avaEvents[i])
 	end
@@ -149,23 +149,23 @@ end
 
 --Group Zone messages
 local function HookGroupZoneMessages()
-	local handlers = ZO_CenterScreenAnnounce_GetHandlers()
-	
+	local handlers = ZO_CenterScreenAnnounce_GetCallbackHandlers()
+
 	local groupEvents = {
 		EVENT_DISPLAY_ANNOUNCEMENT,
 	}
-	
+
 	-- We only want to hide those specific announcement or will remove a lot more.
 	local groupValues =
 	{
 		GetString(NOTY_ENTERING_GROUP_AREA),
 		GetString(NOTY_LEAVING_GROUP_AREA),
 	}
-	
+
 	local function HookGroupZoneEventHandler(event)
 		local original = handlers[event]
 		handlers[event] = function(title, description)
-			
+
 			for index, stringValue in pairs(groupValues) do
 				if title == stringValue or description == stringValue then
 					if SV.groupZone == 1 then
@@ -178,16 +178,16 @@ local function HookGroupZoneMessages()
 					end
 				end
 			end
-			
+
 			return original(title, description)
-			
+
 		end
 	end
-	
+
 	for i = 1, #groupEvents do
 		HookGroupZoneEventHandler(groupEvents[i])
 	end
-	
+
 end
 
 local function HookFriendsMessages()
@@ -200,21 +200,21 @@ local function HookFriendsMessages()
 end
 
 local function BossAlertTextsHook()
-	
+
 	local handlers = ZO_AlertText_GetHandlers()
 
 	local abilityErrorIds = {
 		[162] = true, -- "Flying creatures are immune to snares."
 		[177] = true, -- "This target is too powerful for that effect."
 	}
-	
+
 	local function OnAbilityRequirementFailHook(errorStringId)
 		if SV.boss then
 			return abilityErrorIds[errorStringId]
 		end
 	end
 	ZO_PreHook(handlers, EVENT_ABILITY_REQUIREMENTS_FAIL, OnAbilityRequirementFailHook)
-	
+
 	local actionResults = {
 		[ACTION_RESULT_MISSING_EMPTY_SOUL_GEM] = true, -- "You must have a valid empty soul gem."
 		[ACTION_RESULT_IMMUNE] = true, -- "Target is immune."
@@ -225,16 +225,16 @@ local function BossAlertTextsHook()
 		end
 	end
 	ZO_PreHook(handlers, EVENT_COMBAT_EVENT, CombatEventHook)
-	
+
 end
 
 local function NoLootWindowOnItems()
-	
+
 	-- When LOOT_SETTING_AUTO_LOOT is on, the C++ LootAll() is called, all is handled by C++ side, and EVENT_CLOSE_LOOT is sent.
 	-- All we can do is to use the LootAll() Lua function
 
 	local function LootAllItems()
-	
+
 		local name, targetType, actionName, isOwned = GetLootTargetInfo()
 		if name ~= "" then
 			if targetType == INTERACT_TARGET_TYPE_ITEM then
@@ -245,7 +245,7 @@ local function NoLootWindowOnItems()
 				name = zo_strformat(SI_TOOLTIP_FIXTURE_INSTANCE, name)
 			end
 		end
-		
+
 		if SV.autoLootItems then
 			if not (targetType == INTERACT_TARGET_TYPE_ITEM and (isOwned == false and GetSetting(SETTING_TYPE_LOOT, LOOT_SETTING_AUTO_LOOT) == "1") or (isOwned and GetSetting(SETTING_TYPE_LOOT, LOOT_SETTING_AUTO_LOOT_STOLEN) == "1")) then
 				SYSTEMS:GetObject("loot"):UpdateLootWindow(name, actionName, isOwned)
@@ -255,12 +255,12 @@ local function NoLootWindowOnItems()
 		else
 			SYSTEMS:GetObject("loot"):UpdateLootWindow(name, actionName, isOwned)
 		end
-		
+
 	end
-	
+
 	EVENT_MANAGER:UnregisterForEvent("LOOT_SHARED", EVENT_LOOT_UPDATED)
 	EVENT_MANAGER:RegisterForEvent(ADDON_NAME, EVENT_LOOT_UPDATED, LootAllItems)
-	
+
 end
 
 local function ScreenshotAlertHook()
@@ -273,7 +273,7 @@ local function ScreenshotAlertHook()
 end
 
 local function EnlightenedAlertHook()
-	local handlers = ZO_CenterScreenAnnounce_GetHandlers()
+	local handlers = ZO_CenterScreenAnnounce_GetCallbackHandlers()
 
 	local function EventHook()
 		return SV.enlightened
@@ -286,27 +286,27 @@ local function CraftingResultAlertsHook()
 	local handlers = ZO_AlertText_GetHandlers()
 
 	local blockedMessages = {
-		[SI_SMITHING_BLACKSMITH_EXTRACTION_FAILED] = true,
-		[SI_SMITHING_CLOTHIER_EXTRACTION_FAILED] = true,
-		[SI_SMITHING_WOODWORKING_EXTRACTION_FAILED] = true,
-		[SI_SMITHING_DECONSTRUCTION_LEVEL_PENALTY] = true,
-		[SI_ALCHEMY_NO_YIELD] = true,
-		[SI_ENCHANT_NO_YIELD] = true,
+		[SI_SMITHING_BLACKSMITH_EXTRACTION_FAILED  or 4377] = true,
+		[SI_SMITHING_CLOTHIER_EXTRACTION_FAILED    or 4379] = true,
+		[SI_SMITHING_WOODWORKING_EXTRACTION_FAILED or 4378] = true,
+		[SI_SMITHING_DECONSTRUCTION_LEVEL_PENALTY  or 4364] = true,
+		[SI_ALCHEMY_NO_YIELD                       or 4267] = true,
+		[SI_ENCHANT_NO_YIELD                       or 6695] = true,
 	}
-	
+
 	local function ZO_AlertNoSuppression_Hook(category, soundId, message)
 		if SV.craftingResults then
 			return blockedMessages[message]
 		end
 	end
-	
+
 	ZO_PreHook("ZO_AlertNoSuppression", ZO_AlertNoSuppression_Hook)
-	
+
 	local function CraftFailedHook(tradeskillResult)
 		return SV.craftingResults
 	end
 	ZO_PreHook(handlers, EVENT_CRAFT_FAILED, CraftFailedHook)
-	
+
 end
 
 local function RepairAlertsHook()
@@ -368,14 +368,14 @@ local function NoUniversalStones()
 			end
 		end
 	end
-	
+
 	if SV.noUniversalStones then
 		EVENT_MANAGER:RegisterForEvent(ADDON_NAME, EVENT_CRAFTING_STATION_INTERACT, DisableUniversalCheckbox)
 	else
 		EVENT_MANAGER:UnregisterForEvent(ADDON_NAME, EVENT_CRAFTING_STATION_INTERACT)
 		ZO_SmithingTopLevelCreationPanelStyleListUniversalStyleItem:SetHidden(false)
 	end
-	
+
 end
 
 local function NoGuildLeave()
@@ -387,7 +387,7 @@ local function NoGuildLeave()
 	else
 		GUILD_HOME.keybindStripDescriptor[1].visible = function() return true end
 	end
-	
+
 end
 
 local function NoGuildLeavePreHook()
@@ -452,9 +452,9 @@ end
 --raid notifications
 local function HookRaidNotifications()
 	local function BuildNotificationList_Hook(self)
-		
+
 		local function BuildMessageAndRemoveNotification(contacts, message, notificationId)
-			
+
 			local membersListShorten = ""
 			local nbContacts = #contacts
 			if nbContacts > 4 then
@@ -470,9 +470,9 @@ local function HookRaidNotifications()
 			message = string.gsub(message, GetString(NOTY_RAID_COMPLETE), zo_strformat("<<1>><<2>> ",  membersListShorten, GetString(NOTY_RAID_COMPLETE)))
 			SafePrint(message)
 			RemoveRaidScoreNotification(notificationId)
-	
+
 		end
-	
+
 		if SV.raid == 0 and SV.raidToChat then
 			for index = 1, GetNumRaidScoreNotifications() do
 				local notificationId = GetRaidScoreNotificationId(index)
@@ -496,7 +496,7 @@ local function HookRaidNotifications()
 					local message = self:CreateMessage(raidName, raidScore, hasFriend, hasGuildMember)
 					BuildMessageAndRemoveNotification(contacts, message, notificationId)
 				end
-				
+
 			end
 		elseif SV.raid == 1 then
 			for index = 1, GetNumRaidScoreNotifications() do
@@ -505,7 +505,7 @@ local function HookRaidNotifications()
 				local hasGuildMember = false
 				local showNotification = false
 				local contacts = {}
-				
+
 				for raidMemberIndex = 1, numRaidMembers do
 					local displayName, _, isFriend, isGuildMember = GetRaidScoreNotificationMemberInfo(notificationId, raidMemberIndex)
 					showNotification = showNotification or isFriend
@@ -532,7 +532,7 @@ local function HookRaidNotifications()
 				local hasFriend = false
 				local guildMembers = {}
 				local contacts = {}
-				
+
 				for raidMemberIndex = 1, numRaidMembers do
 					local displayName, _, isFriend, isGuildMember = GetRaidScoreNotificationMemberInfo(notificationId, raidMemberIndex)
 					hasFriend = hasFriend or isFriend
@@ -643,15 +643,15 @@ local function HookReticleTake()
 							end
 						end
 					elseif SV.emptyInteractions and interactionBlocked then
-						
+
 						local dontShow = {
 							[ADDITIONAL_INTERACT_INFO_EMPTY] = true
 						}
-						
+
 						if dontShow[additionalInteractInfo] then
 							return true
 						end
-						
+
 					end
 				end
 			end
@@ -697,9 +697,9 @@ local function HookPlayerToPlayerGuildInvite()
 
 	PLAYER_TO_PLAYER.control:UnregisterForEvent(EVENT_GUILD_INVITE_ADDED)
 	PLAYER_TO_PLAYER.control:RegisterForEvent(EVENT_GUILD_INVITE_ADDED, function (eventCode, guildId, guildName, guildAlliance, inviterName)
-		
+
 		if SV.guildInvites == 0 or (SV.guildInvites == 2 and GetNumGuilds() < MAX_GUILDS) then
-		
+
 			local allianceIconSize = 24
 			if IsInGamepadPreferredMode() then
 				allianceIconSize = 36
@@ -720,7 +720,7 @@ local function HookPlayerToPlayerGuildInvite()
 			data.guildId = guildId
 		end
 	end)
-	
+
 end
 
 -- Aya: Don't interrupt on mailScenes anymore due to RequestOpenMailbox() - sec issue I guess
@@ -757,20 +757,20 @@ local function DontReadBooks()
 		LORE_READER.control:UnregisterForEvent(EVENT_SHOW_BOOK)
 		LORE_READER.control:RegisterForEvent(EVENT_SHOW_BOOK, OnShowBook)
 	end
-	
+
 end
 
 local function DontShowLoreDiscoveries()
 
-	local handlers = ZO_CenterScreenAnnounce_GetHandlers()
-	
+	local handlers = ZO_CenterScreenAnnounce_GetCallbackHandlers()
+
 	local loreEvents = {
 		EVENT_LORE_BOOK_LEARNED,
 		EVENT_LORE_BOOK_LEARNED_SKILL_EXPERIENCE,
 		EVENT_LORE_COLLECTION_COMPLETED,
 		EVENT_LORE_COLLECTION_COMPLETED_SKILL_EXPERIENCE,
 	}
-	
+
 	local function HookLoreLibraryEventHandler(event)
 		local original = handlers[event]
 		handlers[event] = function(...)
@@ -785,26 +785,26 @@ local function DontShowLoreDiscoveries()
 			end
 		end
 	end
-	
+
 	for i = 1, #loreEvents do
 		HookLoreLibraryEventHandler(loreEvents[i])
 	end
-	
+
 end
 
 local function DontShowSkillProgression()
 
-	local handlers = ZO_CenterScreenAnnounce_GetHandlers()
-	
+	local handlers = ZO_CenterScreenAnnounce_GetCallbackHandlers()
+
 	local skillEvents = {
 		EVENT_ABILITY_PROGRESSION_RANK_UPDATE,
 	}
-	
+
 	local function HookLoreLibraryEventHandler(event)
 		local original = handlers[event]
 		handlers[event] = function(progressionIndex, ...)
 			local _, _, _, atMorph = GetAbilityProgressionXPInfo(progressionIndex)
-			
+
 			if not atMorph then
 				if SV.dontShowSkillProgression == 1 then
 					local _, _, msg = original(progressionIndex, ...)
@@ -817,14 +817,14 @@ local function DontShowSkillProgression()
 				end
 			end
 			return original(progressionIndex, ...)
-			
+
 		end
 	end
-	
+
 	for i = 1, #skillEvents do
 		HookLoreLibraryEventHandler(skillEvents[i])
 	end
-	
+
 end
 
 local scenes = {}
@@ -842,7 +842,7 @@ local function DontRotateGameCamera()
 		FRAME_EMOTE_FRAGMENT_LOOT,
 		FRAME_EMOTE_FRAGMENT_CHAMPION,
 	}
-	
+
 	local blacklistedScenes = {
 		market = true,
 		crownCrateGamepad = true,
@@ -853,7 +853,7 @@ local function DontRotateGameCamera()
 		dyeStampConfirmationKeyboard = true,
 		outfitStylesBook = true,
 	}
-	
+
 	local function ChangeScenesBehavior(disableFragments)
 		if disableFragments then
 			for name, scene in pairs(SCENE_MANAGER.scenes) do
@@ -882,9 +882,9 @@ local function DontRotateGameCamera()
 			end
 		end
 	end
-	
-	ChangeScenesBehavior(SV.noCameraSpin)	
-	
+
+	ChangeScenesBehavior(SV.noCameraSpin)
+
 end
 
 local chatScene
@@ -892,7 +892,7 @@ local function DisableChatMinimize()
 
 	local fragmentToRemove = MINIMIZE_CHAT_FRAGMENT
 	local scene = TRADING_HOUSE_SCENE
-	
+
 	if SV.chatForTradingHouse then
 		local sceneToSave = true
 		if scene:HasFragment(fragmentToRemove) then
@@ -908,7 +908,7 @@ local function DisableChatMinimize()
 			chatScene:AddFragment(fragmentToRemove)
 		end
 	end
-	
+
 end
 
 local function HookFenceDialog()
@@ -992,7 +992,7 @@ local function HookMarketAnnouncement()
 end
 
 local function HookCrownCratesSystem()
-	
+
 	if SV.crownCrate then
 		CROWN_CRATE_KEYBOARD_SCENE:RegisterCallback("StateChange", function(oldState, newState)
 		CROWN_CRATE_KEYBOARD_SCENE.sceneName = "crownCrateKeyboard"
@@ -1001,7 +1001,7 @@ local function HookCrownCratesSystem()
 			end
 		end)
 	end
-	
+
 end
 
 local function DoDisableChatAutoComplete()
@@ -1021,9 +1021,9 @@ local function DisableChatAutoComplete()
 end
 
 local function HookAcceptOfferedQuest(fromLAM)
-	
+
 	local original = INTERACTION.eventCallbacks[EVENT_QUEST_OFFERED]
-	
+
 	local masterWritReceived
 	local function OnQuestOffered()
 		if masterWritReceived then
@@ -1032,13 +1032,13 @@ local function HookAcceptOfferedQuest(fromLAM)
 			original()
 		end
 	end
-	
+
 	local function OnLootReceived(_,_, itemLink)
 		if GetItemLinkItemType(itemLink) == ITEMTYPE_MASTER_WRIT then
 			masterWritReceived = true
 		end
 	end
-	
+
 	if SV.dontAcceptWritQuest then
 		INTERACTION.control:RegisterForEvent(EVENT_LOOT_RECEIVED, OnLootReceived)
 		INTERACTION.control:AddFilterForEvent(EVENT_LOOT_RECEIVED, REGISTER_FILTER_BAG_ID, BAG_BACKPACK)
@@ -1050,7 +1050,7 @@ local function HookAcceptOfferedQuest(fromLAM)
 		INTERACTION.control:UnregisterForEvent(EVENT_LOOT_RECEIVED)
 		INTERACTION.control:RegisterForEvent(EVENT_QUEST_OFFERED, original)
 	end
-	
+
 end
 
 local function HookReportItemFromInventory()
@@ -1133,28 +1133,28 @@ local function RemovePinsFromMaps()
 		[172] = true, -- Bleakrock
 		[284] = true, -- Vivec City Wayshrine
 	}
-	
+
 	local unownedHouse = "/esoui/art/icons/poi/poi_group_house_unowned.dds"
 	local ownedHouse = "/esoui/art/icons/poi/poi_group_house_owned.dds"
-	
+
 	local original = GetFastTravelNodeInfo
-	
+
 	GetFastTravelNodeInfo = function(nodeIndex, ...)
-	
+
 		local known, name, normalizedX, normalizedY, icon, glowIcon, poiType, isShownInCurrentMap, linkedCollectibleIsLocked = original(nodeIndex, ...)
-		
+
 		if GetMapType() == MAPTYPE_WORLD then
-		
+
 			if SV.hideTamriel then -- Everything
 				return false, name, normalizedX, normalizedY, icon, glowIcon, poiType, isShownInCurrentMap, linkedCollectibleIsLocked
 			end
-			
+
 			if SV.hideTamrielWayhsrines == 1 and poiType == POI_TYPE_WAYSHRINE and not isCapitalWayshrine[nodeIndex] then -- Capital Wayshrines
 				return false, name, normalizedX, normalizedY, icon, glowIcon, poiType, isShownInCurrentMap, linkedCollectibleIsLocked
 			elseif SV.hideTamrielWayhsrines == 2 and poiType == POI_TYPE_WAYSHRINE then -- All Wayshrines
 				return false, name, normalizedX, normalizedY, icon, glowIcon, poiType, isShownInCurrentMap, linkedCollectibleIsLocked
 			end
-			
+
 			if SV.hideTamrielDungeons == 1 and poiType == POI_TYPE_GROUP_DUNGEON then
 				return false, name, normalizedX, normalizedY, icon, glowIcon, poiType, isShownInCurrentMap, linkedCollectibleIsLocked
 			elseif SV.hideTamrielDungeons == 2 and (poiType == POI_TYPE_GROUP_DUNGEON or poiType == POI_TYPE_ACHIEVEMENT) then -- POI_TYPE_ACHIEVEMENT = trials
@@ -1164,52 +1164,52 @@ local function RemovePinsFromMaps()
 			if SV.ownedHouses == 1 and poiType == POI_TYPE_HOUSE and icon == ownedHouse then
 				return false, name, normalizedX, normalizedY, icon, glowIcon, poiType, isShownInCurrentMap, linkedCollectibleIsLocked
 			end
-			
+
 			if SV.unownedHouses == 1 and poiType == POI_TYPE_HOUSE and icon == unownedHouse then
 				return false, name, normalizedX, normalizedY, icon, glowIcon, poiType, isShownInCurrentMap, linkedCollectibleIsLocked
 			end
-			
+
 		end
-		
+
 		if SV.ownedHouses == 2 and poiType == POI_TYPE_HOUSE and icon == ownedHouse then
 			return false, name, normalizedX, normalizedY, icon, glowIcon, poiType, isShownInCurrentMap, linkedCollectibleIsLocked
 		end
-		
+
 		if SV.unownedHouses == 2 and poiType == POI_TYPE_HOUSE and icon == unownedHouse then
 			return false, name, normalizedX, normalizedY, icon, glowIcon, poiType, isShownInCurrentMap, linkedCollectibleIsLocked
 		end
-		
+
 		return known, name, normalizedX, normalizedY, icon, glowIcon, poiType, isShownInCurrentMap, linkedCollectibleIsLocked
-		
+
 	end
-	
+
 end
 
 local function HandleLuaErrorEvent()
 
 	if SV.luaError >= 1 then
-		
+
 		--unregister original handler
 		EVENT_MANAGER:UnregisterForEvent("ErrorFrame", EVENT_LUA_ERROR)
-		
+
 		local seenBugs = {}
-		
+
 		--create a new event handler
 		local function OnLuaError(_, errString)
-			
+
 			-- Display a notification
 			if SV.luaError == 1 then
 
 				local LNTF = LibStub("LibNotifications")
 				local provider = LNTF:CreateProvider()
-				
+
 				local function RemoveNotification(data)
 					table.remove(provider.notifications, data.notificationId)
 					provider:UpdateNotifications()
 				end
-				
+
 				if not seenBugs[errString] then
-				
+
 					local msg = {
 						dataType						= NOTIFICATIONS_REQUEST_DATA,
 						secsSinceRequest			= ZO_NormalizeSecondsSince(0),
@@ -1231,11 +1231,11 @@ local function HandleLuaErrorEvent()
 						gamepadDeclineCallback	= RemoveNotification,
 						data							= {errString = errString},
 					}
-					
+
 					table.insert(provider.notifications, msg)
 					provider:UpdateNotifications()
 					seenBugs[errString] = true
-				
+
 				end
 			elseif SV.luaError == 2 then
 				if not seenBugs[errString] then
@@ -1244,11 +1244,11 @@ local function HandleLuaErrorEvent()
 				end
 			end
 		end
-		
+
 		EVENT_MANAGER:RegisterForEvent("LUA_ERROR", EVENT_LUA_ERROR, OnLuaError)
-	
+
 	end
-	
+
 end
 
 local function BuildSettingsMenu()
@@ -1311,7 +1311,7 @@ local function BuildSettingsMenu()
 
 	local noPortOnLeader = { GetString(NOTY_NOPORTONLEADER_0), GetString(NOTY_NOPORTONLEADER_1), GetString(NOTY_NOPORTONLEADER_2) }
 	local noPortOnLeaderLookup = { [GetString(NOTY_NOPORTONLEADER_0)] = 0, [GetString(NOTY_NOPORTONLEADER_1)] = 1, [GetString(NOTY_NOPORTONLEADER_2)] = 2 }
-	
+
 	local optionsData = {
 		--AvA Messages
 		{
@@ -1510,7 +1510,7 @@ local function BuildSettingsMenu()
 			setFunc = function(value) SV.noPortOnLeader = noPortOnLeaderLookup[value] end,
 			default = noPortOnLeader[defaults.noPortOnLeader + 1],
 		},
-		
+
 		--Confirmation dialog when crafting
 		{
 			type = "header",
@@ -1561,7 +1561,7 @@ local function BuildSettingsMenu()
 			setFunc = function(value) SV.emptyInteractions = value end,
 			default = defaults.emptyInteractions,
 		},
-		
+
 		-- Auto Loot Items
 		{
 			type = "header",
@@ -1778,7 +1778,7 @@ local function BuildSettingsMenu()
 			end,
 			default = defaults.chatForTradingHouse,
 		},
-		
+
 	}
 	--Guild Alerts
 	local submenuGuildAlerts = {
@@ -1857,7 +1857,7 @@ local function BuildSettingsMenu()
 			},
 		},
 	}
-	
+
 	-- NoGuildLeave Notifications
 	local submenuGuildLeave = {
 		type = "submenu",
@@ -1929,7 +1929,7 @@ local function BuildSettingsMenu()
 			disabled = function() return SV.motd == 0 end,
 		}
 		table.insert(submenuGuildMotD.controls, motdData)
-		
+
 		--Guild Leave
 		local guildLeave = {
 			type = "checkbox",
@@ -1940,7 +1940,7 @@ local function BuildSettingsMenu()
 			disabled = function() return SV.noGuildLeave ~= 2 end,
 		}
 		table.insert(submenuGuildLeave.controls, guildLeave)
-		
+
 	end
 
 	--add submenus to the optionsData
@@ -1948,7 +1948,7 @@ local function BuildSettingsMenu()
 	table.insert(optionsData, submenuRaidScore)
 	table.insert(optionsData, submenuGuildMotD)
 	table.insert(optionsData, submenuGuildLeave)
-	
+
 	table.insert(optionsData, {
 			type = "header",
 			name = ZO_HIGHLIGHT_TEXT:Colorize(GetString(NOTYOU_LUA_HEADER)),
@@ -2035,7 +2035,7 @@ local function OnAddonLoaded(event, name)
 
 		--rebuild notifications list
 		NOTIFICATIONS:RefreshNotificationList()
-		
+
 	end
 end
 
